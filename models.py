@@ -74,6 +74,8 @@ class File(db.Model):
     mime_type = db.Column(db.String(100))
     description = db.Column(db.Text)
     is_public = db.Column(db.Boolean, default=False)
+    download_key = db.Column(db.String(32), unique=True, nullable=False)  # Unique key untuk download
+    download_code = db.Column(db.String(6), nullable=False)  # 6-digit code untuk download
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -99,6 +101,24 @@ class File(db.Model):
     def get_file_extension(self):
         """Get extension file"""
         return self.original_name.rsplit('.', 1)[1].lower() if '.' in self.original_name else 'unknown'
+    
+    def generate_download_key(self):
+        """Generate unique download key"""
+        import secrets
+        return secrets.token_urlsafe(24)
+    
+    def generate_download_code(self):
+        """Generate 6-digit download code"""
+        import random
+        return f"{random.randint(100000, 999999)}"
+    
+    def get_download_url(self, base_url):
+        """Get secure download URL"""
+        return f"{base_url}/download/{self.download_key}"
+    
+    def get_preview_url(self, base_url):
+        """Get secure preview URL"""
+        return f"{base_url}/preview/{self.download_key}"
     
     def __repr__(self):
         return f'<File {self.original_name}>'
