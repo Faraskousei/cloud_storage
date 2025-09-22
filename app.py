@@ -34,6 +34,31 @@ def load_user(user_id):
 def inject_user():
     return dict(current_user=current_user)
 
+# Error handlers
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 Internal Server Error"""
+    return render_template('error.html', 
+                         error_code=500, 
+                         error_message="Internal Server Error",
+                         error_description="Something went wrong on our end. Please try again later."), 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Handle 404 Not Found Error"""
+    return render_template('error.html', 
+                         error_code=404, 
+                         error_message="Page Not Found",
+                         error_description="The page you're looking for doesn't exist."), 404
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    """Handle 403 Forbidden Error"""
+    return render_template('error.html', 
+                         error_code=403, 
+                         error_message="Access Forbidden",
+                         error_description="You don't have permission to access this resource."), 403
+
 # Konfigurasi upload
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar'}
