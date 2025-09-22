@@ -54,6 +54,13 @@ class ProductionConfig(Config):
     
     # Pastikan secret key aman di production
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    
+    # Database configuration untuk Railway (PostgreSQL)
+    if os.environ.get('DATABASE_URL'):
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    else:
+        # Fallback ke MySQL jika DATABASE_URL tidak ada
+        SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{Config.MYSQL_USER}:{Config.MYSQL_PASSWORD}@{Config.MYSQL_HOST}:{Config.MYSQL_PORT}/{Config.MYSQL_DATABASE}'
 
 class TestingConfig(Config):
     """Konfigurasi untuk testing"""
