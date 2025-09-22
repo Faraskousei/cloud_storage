@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Cloud Storage{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding-bottom: 60px;">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg border-0 rounded-4" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                <div class="card-body p-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-cloud-upload-alt text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-2">Cloud Storage</h2>
+                        <p class="text-muted">Silakan login untuk mengakses file Anda</p>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <div class="mb-4">
+                            <label for="username" class="form-label fw-semibold text-dark">
+                                <i class="fas fa-user me-2 text-primary"></i>Username
+                            </label>
+                            <input type="text" class="form-control form-control-lg border-2 rounded-3" 
+                                   id="username" name="username" required 
+                                   style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold text-dark">
+                                <i class="fas fa-lock me-2 text-primary"></i>Password
+                            </label>
+                            <input type="password" class="form-control form-control-lg border-2 rounded-3" 
+                                   id="password" name="password" required
+                                   style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                        </div>
+
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-semibold py-3"
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; transition: all 0.3s ease;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.3)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Demo Info -->
+                    <div class="alert alert-info border-0 rounded-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle text-primary me-3"></i>
+                            <div>
+                                <strong>Admin Users:</strong><br>
+                                <small class="text-muted">
+                                    Username: <code>admin</code> | Password: <code>admin123</code><br>
+                                    Username: <code>frxadz</code> | Password: <code>admin</code>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Login Buttons -->
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button class="btn btn-outline-primary w-100 rounded-3" 
+                                    onclick="quickLogin('admin', 'admin123')"
+                                    style="border-color: #667eea; color: #667eea; transition: all 0.3s ease;"
+                                    onmouseover="this.style.background='#667eea'; this.style.color='white'"
+                                    onmouseout="this.style.background='transparent'; this.style.color='#667eea'">
+                                <i class="fas fa-user-shield me-1"></i>Admin
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-success w-100 rounded-3" 
+                                    onclick="quickLogin('frxadz', 'admin')"
+                                    style="border-color: #10b981; color: #10b981; transition: all 0.3s ease;"
+                                    onmouseover="this.style.background='#10b981'; this.style.color='white'"
+                                    onmouseout="this.style.background='transparent'; this.style.color='#10b981'">
+                                <i class="fas fa-user-crown me-1"></i>Frxadz
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Register Link -->
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-0">
+                            Belum punya akun? 
+                            <a href="{{ url_for('register') }}" class="text-primary fw-semibold text-decoration-none">
+                                <i class="fas fa-user-plus me-1"></i>Daftar di sini
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Elements -->
+<div class="floating-elements">
+    <div class="floating-cloud" style="position: fixed; top: 10%; left: 10%; font-size: 2rem; color: rgba(255, 255, 255, 0.3); animation: float 6s ease-in-out infinite;">
+        <i class="fas fa-cloud"></i>
+    </div>
+    <div class="floating-cloud" style="position: fixed; top: 20%; right: 15%; font-size: 1.5rem; color: rgba(255, 255, 255, 0.2); animation: float 8s ease-in-out infinite reverse;">
+        <i class="fas fa-cloud"></i>
+    </div>
+    <div class="floating-cloud" style="position: fixed; bottom: 20%; left: 20%; font-size: 1.8rem; color: rgba(255, 255, 255, 0.25); animation: float 7s ease-in-out infinite;">
+        <i class="fas fa-cloud"></i>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.floating-elements {
+    pointer-events: none;
+}
+
+.form-control:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+function quickLogin(username, password) {
+    document.getElementById('username').value = username;
+    document.getElementById('password').value = password;
+    
+    // Add visual feedback
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Logging in...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        document.querySelector('form').submit();
+    }, 500);
+}
+
+// Add some interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+            this.parentElement.style.transition = 'all 0.3s ease';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    });
+});
+</script>
+{% endblock %}

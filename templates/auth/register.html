@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Register User - Cloud Storage{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card fade-in">
+            <div class="card-header text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Register User Baru
+                </h4>
+                <p class="text-muted mb-0">Daftarkan user baru ke sistem</p>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="registerForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Username
+                                </label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       placeholder="Masukkan username" required>
+                                <div class="form-text">Minimal 3 karakter</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i>Email
+                                </label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="Masukkan email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">
+                            <i class="fas fa-id-card me-1"></i>Nama Lengkap
+                        </label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" 
+                               placeholder="Masukkan nama lengkap" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="team_id" class="form-label">
+                            <i class="fas fa-users me-1"></i>Team
+                        </label>
+                        <select class="form-select" id="team_id" name="team_id" required>
+                            <option value="">Pilih Team</option>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}" data-color="{{ team.color }}">
+                                {{ team.name }} - {{ team.description }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Password
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           placeholder="Masukkan password" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Minimal 6 karakter</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Konfirmasi Password
+                                </label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                                       placeholder="Konfirmasi password" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Kembali
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="registerBtn">
+                            <i class="fas fa-user-plus me-2"></i>Register User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('password');
+    const eyeIcon = togglePassword.querySelector('i');
+    
+    togglePassword.addEventListener('click', function() {
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        }
+    });
+    
+    // Form validation
+    const registerForm = document.getElementById('registerForm');
+    const registerBtn = document.getElementById('registerBtn');
+    
+    registerForm.addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const fullName = document.getElementById('full_name').value.trim();
+        const teamId = document.getElementById('team_id').value;
+        
+        // Basic validation
+        if (!username || !email || !password || !confirmPassword || !fullName || !teamId) {
+            e.preventDefault();
+            showNotification('Semua field harus diisi', 'error');
+            return;
+        }
+        
+        if (username.length < 3) {
+            e.preventDefault();
+            showNotification('Username minimal 3 karakter', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            e.preventDefault();
+            showNotification('Password minimal 6 karakter', 'error');
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            showNotification('Password dan konfirmasi password tidak sama', 'error');
+            return;
+        }
+        
+        // Show loading state
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Registering...';
+    });
+    
+    // Team selection with color preview
+    const teamSelect = document.getElementById('team_id');
+    teamSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const color = selectedOption.getAttribute('data-color');
+        
+        if (color) {
+            this.style.borderColor = color;
+        } else {
+            this.style.borderColor = '';
+        }
+    });
+});
+</script>
+{% endblock %}

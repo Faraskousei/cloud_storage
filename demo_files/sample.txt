@@ -1,0 +1,12 @@
+Selamat datang di Cloud Storage Sederhana!
+
+File ini adalah contoh file text yang bisa Anda upload ke sistem cloud storage.
+
+Fitur-fitur yang tersedia:
+- Upload file dengan drag & drop
+- Download file dengan mudah
+- Preview file gambar dan text
+- Hapus file yang tidak diperlukan
+- Lihat statistik storage
+
+Selamat mencoba! 🎉

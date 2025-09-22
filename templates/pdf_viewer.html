@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file.original_name }} - PDF Viewer{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100 p-0" style="background: #f8f9fa; padding-bottom: 60px;">
+    <!-- PDF Viewer Header -->
+    <div class="pdf-header bg-white shadow-sm border-bottom">
+        <div class="container-fluid px-4 py-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-outline-secondary btn-sm me-3" onclick="history.back()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <div>
+                            <h5 class="mb-0 text-dark">
+                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                {{ file.original_name }}
+                            </h5>
+                            <small class="text-muted">{{ file.format_file_size() }} • {{ file.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <!-- PDF Controls -->
+                        <div class="btn-group me-3" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="zoomOut()" title="Zoom Out">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="zoomIn()" title="Zoom In">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="fitToWidth()" title="Fit to Width">
+                                <i class="fas fa-expand-arrows-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Download Button -->
+                        <a href="{{ url_for('download_file', filename=file.stored_name) }}" 
+                           class="btn btn-primary btn-sm me-2">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                        
+                        <!-- Fullscreen Toggle -->
+                        <button class="btn btn-outline-secondary btn-sm" onclick="toggleFullscreen()" title="Fullscreen">
+                            <i class="fas fa-expand" id="fullscreen-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Container -->
+    <div class="pdf-container" style="height: calc(100vh - 80px); overflow: auto; background: #525659;">
+        <div class="pdf-wrapper d-flex justify-content-center align-items-start py-4">
+            <div class="pdf-content" id="pdf-content">
+                <iframe 
+                    src="{{ url_for('view_file', filename=file.stored_name) }}#toolbar=0&navpanes=0&scrollbar=1"
+                    width="100%" 
+                    height="100%"
+                    style="border: none; min-height: 600px;"
+                    id="pdf-iframe">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Navigation (Bottom) -->
+    <div class="pdf-nav bg-white shadow-sm border-top">
+        <div class="container-fluid px-4 py-2">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-3">Zoom:</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary" onclick="setZoom(0.5)">50%</button>
+                            <button class="btn btn-outline-secondary" onclick="setZoom(0.75)">75%</button>
+                            <button class="btn btn-outline-secondary active" onclick="setZoom(1)">100%</button>
+                            <button class="btn btn-outline-secondary" onclick="setZoom(1.25)">125%</button>
+                            <button class="btn btn-outline-secondary" onclick="setZoom(1.5)">150%</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <span class="text-muted me-3">View:</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary active" onclick="setView('single')" title="Single Page">
+                                <i class="fas fa-file"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="setView('continuous')" title="Continuous">
+                                <i class="fas fa-list"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="setView('book')" title="Book View">
+                                <i class="fas fa-book"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-white">Loading PDF...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.pdf-container {
+    position: relative;
+    background: #525659;
+}
+
+.pdf-wrapper {
+    min-height: 100%;
+}
+
+.pdf-content {
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.pdf-content:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.pdf-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.pdf-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 1000;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: white;
+}
+
+.btn-group .btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pdf-header .col-md-6:last-child {
+        margin-top: 1rem;
+    }
+    
+    .pdf-nav .col-md-6:last-child {
+        margin-top: 1rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+    }
+}
+
+/* Smooth transitions */
+* {
+    transition: all 0.3s ease;
+}
+
+/* Custom scrollbar for PDF container */
+.pdf-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.pdf-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.pdf-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.pdf-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>
+
+<script>
+let currentZoom = 1;
+let currentView = 'single';
+
+// PDF Controls
+function zoomIn() {
+    currentZoom = Math.min(currentZoom + 0.25, 3);
+    applyZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom - 0.25, 0.25);
+    applyZoom();
+}
+
+function setZoom(zoom) {
+    currentZoom = zoom;
+    applyZoom();
+    updateZoomButtons();
+}
+
+function applyZoom() {
+    const iframe = document.getElementById('pdf-iframe');
+    iframe.style.transform = `scale(${currentZoom})`;
+    iframe.style.transformOrigin = 'top left';
+    
+    // Adjust container size
+    const container = document.getElementById('pdf-content');
+    container.style.width = `${100 * currentZoom}%`;
+    container.style.height = `${600 * currentZoom}px`;
+}
+
+function fitToWidth() {
+    const container = document.querySelector('.pdf-container');
+    const containerWidth = container.clientWidth - 40; // Account for padding
+    const iframeWidth = 800; // Default PDF width
+    currentZoom = containerWidth / iframeWidth;
+    applyZoom();
+    updateZoomButtons();
+}
+
+function setView(view) {
+    currentView = view;
+    updateViewButtons();
+    
+    // Update iframe parameters based on view
+    const iframe = document.getElementById('pdf-iframe');
+    let src = iframe.src.split('#')[0];
+    
+    switch(view) {
+        case 'single':
+            src += '#toolbar=0&navpanes=0&scrollbar=1&view=FitH';
+            break;
+        case 'continuous':
+            src += '#toolbar=0&navpanes=0&scrollbar=1&view=FitV';
+            break;
+        case 'book':
+            src += '#toolbar=0&navpanes=0&scrollbar=1&view=Fit';
+            break;
+    }
+    
+    iframe.src = src;
+}
+
+function toggleFullscreen() {
+    const container = document.querySelector('.pdf-container');
+    const icon = document.getElementById('fullscreen-icon');
+    
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().then(() => {
+            icon.className = 'fas fa-compress';
+        });
+    } else {
+        document.exitFullscreen().then(() => {
+            icon.className = 'fas fa-expand';
+        });
+    }
+}
+
+function updateZoomButtons() {
+    document.querySelectorAll('.pdf-nav .btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.includes(Math.round(currentZoom * 100) + '%')) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function updateViewButtons() {
+    document.querySelectorAll('.pdf-nav .btn-group:last-child .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const viewButtons = document.querySelectorAll('.pdf-nav .btn-group:last-child .btn');
+    switch(currentView) {
+        case 'single':
+            viewButtons[0].classList.add('active');
+            break;
+        case 'continuous':
+            viewButtons[1].classList.add('active');
+            break;
+        case 'book':
+            viewButtons[2].classList.add('active');
+            break;
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey) {
+        switch(e.key) {
+            case '=':
+            case '+':
+                e.preventDefault();
+                zoomIn();
+                break;
+            case '-':
+                e.preventDefault();
+                zoomOut();
+                break;
+            case '0':
+                e.preventDefault();
+                setZoom(1);
+                break;
+        }
+    }
+    
+    if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+    }
+});
+
+// Show loading overlay when PDF is loading
+document.getElementById('pdf-iframe').addEventListener('load', function() {
+    document.getElementById('loading-overlay').style.display = 'none';
+});
+
+// Show loading overlay initially
+document.getElementById('loading-overlay').style.display = 'flex';
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateZoomButtons();
+    updateViewButtons();
+    
+    // Add smooth scrolling
+    document.querySelector('.pdf-container').style.scrollBehavior = 'smooth';
+});
+</script>
+{% endblock %}

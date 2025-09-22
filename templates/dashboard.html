@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Cloud Storage{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card fade-in">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-cloud me-2" style="color: {{ current_user.get_team_color() }};"></i>
+                            Selamat Datang, {{ current_user.full_name }}!
+                        </h2>
+                        <p class="text-muted mb-0">
+                            <span class="badge me-2" style="background-color: {{ current_user.get_team_color() }};">
+                                {{ current_user.get_team_name() }}
+                            </span>
+                            {% if current_user.is_admin %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-crown me-1"></i>Administrator
+                                </span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="fas fa-plus"></i> Upload File
+                        </button>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
+                            <i class="fas fa-user-plus"></i> Register User
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>Upload File Baru
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="modal-body">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="text-center py-4">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h5>Drag & Drop file di sini</h5>
+                            <p class="text-muted">atau klik untuk memilih file</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="file" class="form-label">
+                            <i class="fas fa-file me-1"></i>Pilih File
+                        </label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Tipe file yang diizinkan: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, ppt, pptx, zip, rar, mp4, mp3
+                        </div>
+                        <div class="upload-progress mt-3" id="uploadProgress" style="display: none;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small>Mengupload...</small>
+                                <small id="progressPercent">0%</small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn">
+                        <i class="fas fa-upload me-1"></i>Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-5">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card hover-lift">
+            <div class="stats-number">{{ total_files }}</div>
+            <div class="stats-label">
+                <i class="fas fa-file me-1"></i>Total File
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card hover-lift">
+            <div class="stats-number">{{ (total_size / 1024 / 1024)|round(2) }}</div>
+            <div class="stats-label">
+                <i class="fas fa-weight me-1"></i>Total Ukuran (MB)
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card hover-lift">
+            <div class="stats-number">{{ team_files }}</div>
+            <div class="stats-label">
+                <i class="fas fa-users me-1"></i>File Team Saya
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card hover-lift">
+            <div class="stats-number">100</div>
+            <div class="stats-label">
+                <i class="fas fa-shield-alt me-1"></i>Limit Upload (MB)
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Statistics (Admin only) -->
+{% if current_user.is_admin %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card fade-in">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Statistik per Team
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for team_stat in team_stats %}
+                    <div class="col-md-4 mb-3">
+                        <div class="stats-card" style="background: linear-gradient(135deg, {{ team_stat.color }}20, {{ team_stat.color }}10);">
+                            <div class="stats-number" style="color: {{ team_stat.color }};">
+                                {{ team_stat.file_count }}
+                            </div>
+                            <div class="stats-label">
+                                <i class="fas fa-users me-1"></i>{{ team_stat.name }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- File List -->
+{% if files %}
+    <div class="card fade-in">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-folder-open me-2"></i>File Saya
+            </h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-primary me-2">{{ files|length }} file</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="refreshFiles()" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-file me-1"></i>Nama File</th>
+                            <th><i class="fas fa-tag me-1"></i>Tipe</th>
+                            <th><i class="fas fa-weight me-1"></i>Ukuran</th>
+                            <th><i class="fas fa-user me-1"></i>Owner</th>
+                            {% if current_user.is_admin %}
+                            <th><i class="fas fa-users me-1"></i>Team</th>
+                            {% endif %}
+                            <th><i class="fas fa-clock me-1"></i>Tanggal Upload</th>
+                            <th><i class="fas fa-cogs me-1"></i>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in files %}
+                        <tr class="fade-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% set icon_classes = {
+                                        'pdf': 'fas fa-file-pdf',
+                                        'txt': 'fas fa-file-alt',
+                                        'jpg': 'fas fa-file-image',
+                                        'jpeg': 'fas fa-file-image',
+                                        'png': 'fas fa-file-image',
+                                        'gif': 'fas fa-file-image',
+                                        'doc': 'fas fa-file-word',
+                                        'docx': 'fas fa-file-word',
+                                        'xls': 'fas fa-file-excel',
+                                        'xlsx': 'fas fa-file-excel',
+                                        'ppt': 'fas fa-file-powerpoint',
+                                        'pptx': 'fas fa-file-powerpoint',
+                                        'zip': 'fas fa-file-archive',
+                                        'rar': 'fas fa-file-archive',
+                                        'mp4': 'fas fa-file-video',
+                                        'mp3': 'fas fa-file-audio'
+                                    } %}
+                                    {% set icon_type = icon_classes.get(file.extension, 'fas fa-file') %}
+                                    {% set file_type = 'pdf' if file.extension == 'pdf' else 'image' if file.extension in ['jpg', 'jpeg', 'png', 'gif'] else 'word' if file.extension in ['doc', 'docx'] else 'excel' if file.extension in ['xls', 'xlsx'] else 'powerpoint' if file.extension in ['ppt', 'pptx'] else 'archive' if file.extension in ['zip', 'rar'] else 'text' if file.extension == 'txt' else 'default' %}
+                                    
+                                    <div class="file-icon {{ file_type }}">
+                                        <i class="{{ icon_type }}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="file-name" title="{{ file.name }}">
+                                            {{ file.name }}
+                                        </div>
+                                        <small class="text-muted">{{ file.extension.upper() }} • {{ file.size_formatted }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ file.extension.upper() }}</span>
+                            </td>
+                            <td>
+                                <span class="file-size">{{ file.size_formatted }}</span>
+                            </td>
+                            <td>
+                                <span class="file-owner">{{ file.owner }}</span>
+                            </td>
+                            {% if current_user.is_admin %}
+                            <td>
+                                <span class="badge" style="background-color: {{ file.team_color }};">
+                                    {{ file.team }}
+                                </span>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <span class="file-date">{{ file.upload_time.strftime('%d/%m/%Y %H:%M') }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('download_file', file_id=file.id) }}" 
+                                       class="btn btn-outline-primary hover-lift" title="Download">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if file.extension in ['jpg', 'jpeg', 'png', 'gif', 'txt', 'pdf'] %}
+                                    <a href="{{ url_for('view_file', file_id=file.id) }}" 
+                                       class="btn btn-outline-info hover-lift" title="Preview" target="_blank">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                    <button class="btn btn-outline-danger hover-lift" 
+                                            onclick="deleteFile({{ file.id }}, '{{ file.name }}')" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <h3>Belum Ada File</h3>
+        <p>Upload file pertama Anda untuk memulai menggunakan cloud storage.<br>
+        Drag & drop file atau klik tombol di bawah untuk upload.</p>
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="fas fa-plus me-2"></i>Upload File Pertama
+        </button>
+    </div>
+{% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-warning"></i> Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus file <strong id="deleteFileName"></strong>?</p>
+                <p class="text-muted">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteFile(fileId, filename) {
+    document.getElementById('deleteFileName').textContent = filename;
+    document.getElementById('deleteForm').action = "{{ url_for('delete_file', file_id=0) }}".replace('0', fileId);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function refreshFiles() {
+    const refreshBtn = document.querySelector('[onclick="refreshFiles()"]');
+    const icon = refreshBtn.querySelector('i');
+    
+    // Add spinning animation
+    icon.classList.add('fa-spin');
+    refreshBtn.disabled = true;
+    
+    // Reload page after short delay
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+// Enhanced file upload dengan drag & drop
+const fileInput = document.getElementById('file');
+const uploadArea = document.getElementById('uploadArea');
+const uploadForm = document.getElementById('uploadForm');
+
+if (fileInput && uploadArea) {
+    // Drag & Drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('drag-over');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // Click to select file
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+}
+
+function handleFileSelect(file) {
+    // Validasi ukuran file (100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+        showNotification('Ukuran file terlalu besar. Maksimal 100MB.', 'error');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Validasi tipe file
+    const allowedTypes = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'mp4', 'mp3'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    
+    if (!allowedTypes.includes(fileExtension)) {
+        showNotification('Tipe file tidak diizinkan. Tipe yang diizinkan: ' + allowedTypes.join(', '), 'error');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Update upload area dengan file info
+    updateUploadArea(file);
+    showNotification(`File "${file.name}" siap untuk diupload`, 'success');
+}
+
+function updateUploadArea(file) {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileIcon = getFileIcon(file.name.split('.').pop().toLowerCase());
+    
+    uploadArea.innerHTML = `
+        <div class="text-center py-4">
+            <i class="${fileIcon} fa-3x mb-3"></i>
+            <h5>${file.name}</h5>
+            <p class="text-muted">${formatFileSize(file.size)} • Siap untuk upload</p>
+        </div>
+    `;
+}
+
+function getFileIcon(extension) {
+    const iconMap = {
+        'pdf': 'fas fa-file-pdf text-danger',
+        'txt': 'fas fa-file-alt text-info',
+        'jpg': 'fas fa-file-image text-success',
+        'jpeg': 'fas fa-file-image text-success',
+        'png': 'fas fa-file-image text-success',
+        'gif': 'fas fa-file-image text-success',
+        'doc': 'fas fa-file-word text-primary',
+        'docx': 'fas fa-file-word text-primary',
+        'xls': 'fas fa-file-excel text-success',
+        'xlsx': 'fas fa-file-excel text-success',
+        'ppt': 'fas fa-file-powerpoint text-warning',
+        'pptx': 'fas fa-file-powerpoint text-warning',
+        'zip': 'fas fa-file-archive text-secondary',
+        'rar': 'fas fa-file-archive text-secondary',
+        'mp4': 'fas fa-file-video text-danger',
+        'mp3': 'fas fa-file-audio text-success'
+    };
+    return iconMap[extension] || 'fas fa-file text-muted';
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Auto-refresh setiap 30 detik
+setTimeout(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

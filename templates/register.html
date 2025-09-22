@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Cloud Storage{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding-bottom: 60px;">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                <div class="card-body p-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-user-plus text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-2">Daftar Akun Baru</h2>
+                        <p class="text-muted">Buat akun untuk mengakses Cloud Storage</p>
+                    </div>
+
+                    <!-- Register Form -->
+                    <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-user me-2 text-primary"></i>Nama Lengkap
+                                </label>
+                                <input type="text" class="form-control form-control-lg border-2 rounded-3" 
+                                       id="full_name" name="full_name" required 
+                                       style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                       onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-at me-2 text-primary"></i>Username
+                                </label>
+                                <input type="text" class="form-control form-control-lg border-2 rounded-3" 
+                                       id="username" name="username" required 
+                                       style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                       onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold text-dark">
+                                <i class="fas fa-envelope me-2 text-primary"></i>Email
+                            </label>
+                            <input type="email" class="form-control form-control-lg border-2 rounded-3" 
+                                   id="email" name="email" required 
+                                   style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-lock me-2 text-primary"></i>Password
+                                </label>
+                                <input type="password" class="form-control form-control-lg border-2 rounded-3" 
+                                       id="password" name="password" required 
+                                       style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                       onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label fw-semibold text-dark">
+                                    <i class="fas fa-lock me-2 text-primary"></i>Konfirmasi Password
+                                </label>
+                                <input type="password" class="form-control form-control-lg border-2 rounded-3" 
+                                       id="confirm_password" name="confirm_password" required 
+                                       style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                       onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="team_id" class="form-label fw-semibold text-dark">
+                                <i class="fas fa-users me-2 text-primary"></i>Tim
+                            </label>
+                            <select class="form-select form-select-lg border-2 rounded-3" 
+                                    id="team_id" name="team_id" required 
+                                    style="border-color: #e9ecef; transition: all 0.3s ease;"
+                                    onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                    onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'">
+                                <option value="">Pilih Tim</option>
+                                {% for team in teams %}
+                                <option value="{{ team.id }}" style="color: {{ team.color }};">
+                                    {{ team.name }} - {{ team.description }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-semibold py-3"
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; transition: all 0.3s ease;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.3)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                <i class="fas fa-user-plus me-2"></i>Daftar Akun
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Login Link -->
+                    <div class="text-center">
+                        <p class="text-muted mb-0">
+                            Sudah punya akun? 
+                            <a href="{{ url_for('login') }}" class="text-primary fw-semibold text-decoration-none">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login di sini
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Elements -->
+<div class="floating-elements">
+    <div class="floating-cloud" style="position: fixed; top: 10%; left: 10%; font-size: 2rem; color: rgba(255, 255, 255, 0.3); animation: float 6s ease-in-out infinite;">
+        <i class="fas fa-cloud"></i>
+    </div>
+    <div class="floating-cloud" style="position: fixed; top: 20%; right: 15%; font-size: 1.5rem; color: rgba(255, 255, 255, 0.2); animation: float 8s ease-in-out infinite reverse;">
+        <i class="fas fa-cloud"></i>
+    </div>
+    <div class="floating-cloud" style="position: fixed; bottom: 20%; left: 20%; font-size: 1.8rem; color: rgba(255, 255, 255, 0.25); animation: float 7s ease-in-out infinite;">
+        <i class="fas fa-cloud"></i>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.floating-elements {
+    pointer-events: none;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+// Password confirmation validation
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Password dan konfirmasi password tidak sama!');
+        return false;
+    }
+    
+    if (password.length < 6) {
+        e.preventDefault();
+        alert('Password minimal 6 karakter!');
+        return false;
+    }
+});
+
+// Add interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+            this.parentElement.style.transition = 'all 0.3s ease';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    });
+    
+    // Real-time password strength indicator
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = getPasswordStrength(password);
+        updatePasswordStrength(strength);
+    });
+    
+    confirmInput.addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        const confirm = this.value;
+        
+        if (confirm && password !== confirm) {
+            this.style.borderColor = '#f56565';
+        } else {
+            this.style.borderColor = '#e9ecef';
+        }
+    });
+});
+
+function getPasswordStrength(password) {
+    let strength = 0;
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+}
+
+function updatePasswordStrength(strength) {
+    const passwordInput = document.getElementById('password');
+    const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac'];
+    const labels = ['Sangat Lemah', 'Lemah', 'Sedang', 'Kuat', 'Sangat Kuat'];
+    
+    if (strength > 0) {
+        passwordInput.style.borderColor = colors[strength - 1];
+        passwordInput.title = `Kekuatan password: ${labels[strength - 1]}`;
+    } else {
+        passwordInput.style.borderColor = '#e9ecef';
+        passwordInput.title = '';
+    }
+}
+</script>
+{% endblock %}

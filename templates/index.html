@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Cloud Storage - Beranda{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Slim Header -->
+        <div class="slim-header bg-white rounded-3 shadow-sm border-0 mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="row align-items-center py-3 px-4">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1 fw-bold">Bidang Perindustrian</h4>
+                            <p class="mb-0 opacity-75">Selamat datang, <strong>{{ current_user.full_name }}</strong></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light btn-lg rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#uploadModal" 
+                            style="box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)'">
+                        <i class="fas fa-plus me-2"></i>Upload File
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Upload Modal -->
+        <div class="modal fade" id="uploadModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>Upload File Baru
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <div class="modal-body">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <h5>Drag & Drop file di sini</h5>
+                                    <p class="text-muted">atau klik untuk memilih file</p>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="file" class="form-label">
+                                    <i class="fas fa-file me-1"></i>Pilih File
+                                </label>
+                                <input type="file" class="form-control" id="file" name="file" required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Tipe file yang diizinkan: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, ppt, pptx, zip, rar, mp4, mp3
+                                </div>
+                                <div class="upload-progress mt-3" id="uploadProgress" style="display: none;">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Mengupload...</small>
+                                        <small id="progressPercent">0%</small>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Batal
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                <i class="fas fa-upload me-1"></i>Upload
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced File Statistics -->
+        <div class="row mb-5">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card hover-lift">
+                    <div class="stats-number">{{ files|length }}</div>
+                    <div class="stats-label">
+                        <i class="fas fa-file me-1"></i>Total File
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card hover-lift">
+                    <div class="stats-number">{{ (files|sum(attribute='file_size') / 1024 / 1024)|round(2) }}</div>
+                    <div class="stats-label">
+                        <i class="fas fa-weight me-1"></i>Total Ukuran (MB)
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card hover-lift">
+                    <div class="stats-number">{{ files|groupby('file_type')|list|length }}</div>
+                    <div class="stats-label">
+                        <i class="fas fa-layer-group me-1"></i>Tipe File
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stats-card hover-lift">
+                    <div class="stats-number">100</div>
+                    <div class="stats-label">
+                        <i class="fas fa-shield-alt me-1"></i>Limit Upload (MB)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slim File List -->
+        {% if files %}
+            <div class="slim-file-list bg-white rounded-3 shadow-sm border-0 overflow-hidden">
+                <!-- File List Header -->
+                <div class="file-list-header bg-light border-bottom py-3 px-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 class="mb-0 text-dark fw-semibold">
+                                <i class="fas fa-folder-open me-2 text-primary"></i>
+                                {% if current_user.is_admin %}
+                                    Semua File (Admin View)
+                                {% else %}
+                                    File Saya
+                                {% endif %}
+                            </h6>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="d-flex align-items-center justify-content-end">
+                                <span class="badge bg-primary me-3 px-3 py-2 rounded-pill">{{ files|length }} file</span>
+                                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="refreshFiles()" title="Refresh">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- File Grid -->
+                <div class="file-grid p-4">
+                    <div class="row g-3">
+                        {% for file in files %}
+                        <div class="col-lg-4 col-md-6 col-sm-12">
+                            <div class="file-card bg-white rounded-3 shadow-sm border-0 h-100" 
+                                 style="transition: all 0.3s ease; animation-delay: {{ loop.index0 * 0.1 }}s;"
+                                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
+                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)'">
+                                
+                                <!-- File Header -->
+                                <div class="file-header p-3 border-bottom">
+                                    <div class="d-flex align-items-center">
+                                        {% set icon_classes = {
+                                            'pdf': 'fas fa-file-pdf',
+                                            'txt': 'fas fa-file-alt',
+                                            'jpg': 'fas fa-file-image',
+                                            'jpeg': 'fas fa-file-image',
+                                            'png': 'fas fa-file-image',
+                                            'gif': 'fas fa-file-image',
+                                            'doc': 'fas fa-file-word',
+                                            'docx': 'fas fa-file-word',
+                                            'xls': 'fas fa-file-excel',
+                                            'xlsx': 'fas fa-file-excel',
+                                            'ppt': 'fas fa-file-powerpoint',
+                                            'pptx': 'fas fa-file-powerpoint',
+                                            'zip': 'fas fa-file-archive',
+                                            'rar': 'fas fa-file-archive',
+                                            'mp4': 'fas fa-file-video',
+                                            'mp3': 'fas fa-file-audio'
+                                        } %}
+                                        {% set icon_type = icon_classes.get(file.file_type, 'fas fa-file') %}
+                                        {% set file_type = 'pdf' if file.file_type == 'pdf' else 'image' if file.file_type in ['jpg', 'jpeg', 'png', 'gif'] else 'word' if file.file_type in ['doc', 'docx'] else 'excel' if file.file_type in ['xls', 'xlsx'] else 'powerpoint' if file.file_type in ['ppt', 'pptx'] else 'archive' if file.file_type in ['zip', 'rar'] else 'text' if file.file_type == 'txt' else 'default' %}
+                                        
+                                        <div class="file-icon-large {{ file_type }} me-3" style="width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                            <i class="{{ icon_type }}"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 text-dark fw-semibold" style="font-size: 0.9rem; line-height: 1.2;">
+                                                {{ file.original_name[:25] }}{% if file.original_name|length > 25 %}...{% endif %}
+                                            </h6>
+                                            <small class="text-muted">{{ file.file_type.upper() }} • {{ file.format_file_size() }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- File Info -->
+                                <div class="file-info p-3">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Ukuran</small>
+                                            <span class="fw-semibold text-dark">{{ file.format_file_size() }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Tanggal</small>
+                                            <span class="fw-semibold text-dark">{{ file.created_at.strftime('%d/%m/%Y') }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Team Info untuk Admin -->
+                                    {% if current_user.is_admin %}
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-12">
+                                            <small class="text-muted d-block">Tim</small>
+                                            <span class="badge rounded-pill" style="background-color: {{ file.team.color }}; color: white;">
+                                                <i class="fas fa-users me-1"></i>{{ file.team.name }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('download_file', filename=file.stored_name) }}" 
+                                           class="btn btn-outline-primary btn-sm flex-fill rounded-pill" title="Download">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                        
+                                        {% if file.file_type == 'pdf' %}
+                                        <a href="{{ url_for('pdf_viewer', filename=file.stored_name) }}" 
+                                           class="btn btn-primary btn-sm flex-fill rounded-pill" title="View PDF">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                        {% elif file.file_type in ['jpg', 'jpeg', 'png', 'gif', 'txt'] %}
+                                        <a href="{{ url_for('view_file', filename=file.stored_name) }}" 
+                                           class="btn btn-primary btn-sm flex-fill rounded-pill" title="Preview" target="_blank">
+                                            <i class="fas fa-eye me-1"></i>Preview
+                                        </a>
+                                        {% endif %}
+                                        
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill" 
+                                                onclick="deleteFile('{{ file.stored_name }}')" title="Hapus"
+                                                style="width: 40px;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Belum Ada File</h3>
+                <p>Upload file pertama Anda untuk memulai menggunakan cloud storage.<br>
+                Drag & drop file atau klik tombol di bawah untuk upload.</p>
+                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="fas fa-plus me-2"></i>Upload File Pertama
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-warning"></i> Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus file <strong id="deleteFileName"></strong>?</p>
+                <p class="text-muted">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteFile(filename) {
+    document.getElementById('deleteFileName').textContent = filename;
+    document.getElementById('deleteForm').action = "{{ url_for('delete_file', filename='') }}" + filename;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+// Auto-refresh setiap 30 detik
+setTimeout(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}
