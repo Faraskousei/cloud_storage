@@ -20,7 +20,7 @@ class Config:
     
     # Konfigurasi upload
     UPLOAD_FOLDER = 'uploads'
-    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024 * 1024  # 5GB
     
     # Tipe file yang diizinkan
     ALLOWED_EXTENSIONS = {

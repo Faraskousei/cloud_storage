@@ -120,55 +120,112 @@ def dashboard():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
-    """Upload file dengan team isolation"""
-    if 'file' not in request.files:
-        flash('Tidak ada file yang dipilih', 'error')
-        return redirect(request.url)
-    
-    file = request.files['file']
-    if file.filename == '':
-        flash('Tidak ada file yang dipilih', 'error')
-        return redirect(request.url)
-    
-    if file and allowed_file(file.filename):
+    """Upload file dengan team isolation - Enhanced version"""
+    try:
+        print(f"🔧 Upload request started by user: {current_user.username}")
+        
+        # Validasi request
+        if 'file' not in request.files:
+            print("❌ No file in request")
+            flash('Tidak ada file yang dipilih', 'error')
+            return redirect(request.url)
+        
+        file = request.files['file']
+        if not file or file.filename == '':
+            print("❌ Empty file")
+            flash('Tidak ada file yang dipilih', 'error')
+            return redirect(request.url)
+        
+        print(f"📁 File selected: {file.filename}")
+        
+        # Validasi tipe file
+        if not allowed_file(file.filename):
+            print(f"❌ File type not allowed: {file.filename}")
+            flash('Tipe file tidak diizinkan', 'error')
+            return redirect(request.url)
+        
+        # Generate unique filename
+        filename = secure_filename(file.filename)
+        if not filename:
+            print("❌ Invalid filename after secure_filename")
+            flash('Nama file tidak valid', 'error')
+            return redirect(request.url)
+        
+        name, ext = os.path.splitext(filename)
+        unique_filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
+        print(f"📝 Generated filename: {unique_filename}")
+        
+        # Create team-specific upload directory
+        upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], f"team_{current_user.team_id}")
+        if not os.path.exists(upload_folder):
+            print(f"📁 Creating team upload folder: {upload_folder}")
+            os.makedirs(upload_folder, exist_ok=True)
+        
+        file_path = os.path.join(upload_folder, unique_filename)
+        print(f"💾 Saving file to: {file_path}")
+        
         try:
-            # Generate unique filename
-            filename = secure_filename(file.filename)
-            name, ext = os.path.splitext(filename)
-            unique_filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
-            
-            # Create team-specific upload directory
-            upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], f"team_{current_user.team_id}")
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            
-            file_path = os.path.join(upload_folder, unique_filename)
             file.save(file_path)
-            
-            # Save file info to database
+            print("✅ File saved successfully")
+        except Exception as save_error:
+            print(f"❌ File save error: {str(save_error)}")
+            flash(f'Gagal menyimpan file: {str(save_error)}', 'error')
+            return redirect(request.url)
+        
+        # Cek apakah file berhasil disimpan
+        if not os.path.exists(file_path):
+            print("❌ File not found after save")
+            flash('Gagal menyimpan file ke server', 'error')
+            return redirect(request.url)
+        
+        # Cek ukuran file
+        file_size = os.path.getsize(file_path)
+        if file_size == 0:
+            print("❌ File size is 0")
+            os.remove(file_path)  # Hapus file kosong
+            flash('File kosong atau rusak', 'error')
+            return redirect(request.url)
+        
+        print(f"📊 File size verified: {file_size} bytes")
+        
+        # Save file info to database
+        try:
             new_file = File(
                 original_name=filename,
                 stored_name=unique_filename,
                 file_path=file_path,
-                file_size=os.path.getsize(file_path),
-                file_type=ext[1:] if ext else 'unknown',
+                file_size=file_size,
+                file_type=ext[1:].lower() if ext else 'unknown',
                 mime_type=mimetypes.guess_type(file_path)[0],
+                download_key=File().generate_download_key(),
+                download_code=File().generate_download_code(),
                 owner_id=current_user.id,
                 team_id=current_user.team_id
             )
             
             db.session.add(new_file)
             db.session.commit()
+            print(f"✅ File record saved to database: ID {new_file.id}")
             
-            flash(f'File "{filename}" berhasil diupload!', 'success')
-            
-        except Exception as e:
+        except Exception as db_error:
+            print(f"❌ Database error: {str(db_error)}")
             db.session.rollback()
-            flash(f'Error saat upload: {str(e)}', 'error')
-    else:
-        flash('Tipe file tidak diizinkan', 'error')
+            # Hapus file jika database error
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            flash(f'Gagal menyimpan ke database: {str(db_error)}', 'error')
+            return redirect(request.url)
+        
+        print(f"✅ Upload completed successfully: {filename} -> {unique_filename}")
+        flash(f'File "{filename}" berhasil diupload!', 'success')
+        
+    except Exception as e:
+        print(f"❌ Upload error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error saat upload: {str(e)}', 'error')
     
-    return redirect(url_for('dashboard'))
+    return redirect(request.url)
 
 @app.route('/download/<int:file_id>')
 @login_required

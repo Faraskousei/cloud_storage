@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Register - Perindustrian Cloud{% endblock %}
+
+{% block content %}
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="admin-register-card">
+                <div class="admin-header">
+                    <div class="admin-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h1 class="admin-title">Admin User Management</h1>
+                    <p class="admin-subtitle">Tambah user baru ke sistem</p>
+                </div>
+
+                <div class="admin-form">
+                    <form method="POST" action="{{ url_for('admin_register') }}" class="interactive-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input type="text" id="username" name="username" required class="form-input" placeholder="Username">
+                                    <label for="username" class="input-label">Username</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <input type="email" id="email" name="email" required class="form-input" placeholder="Email">
+                                    <label for="email" class="input-label">Email</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-id-card"></i>
+                                    </div>
+                                    <input type="text" id="full_name" name="full_name" required class="form-input" placeholder="Nama Lengkap">
+                                    <label for="full_name" class="input-label">Nama Lengkap</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" id="password" name="password" required class="form-input" placeholder="Password">
+                                    <label for="password" class="input-label">Password</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <select id="team_id" name="team_id" required class="form-input">
+                                        <option value="">Pilih Tim</option>
+                                        {% for team in teams %}
+                                        <option value="{{ team.id }}">{{ team.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <label for="team_id" class="input-label">Tim</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-icon">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </div>
+                                    <select id="is_admin" name="is_admin" class="form-input">
+                                        <option value="0">User Biasa</option>
+                                        <option value="1">Admin</option>
+                                    </select>
+                                    <label for="is_admin" class="input-label">Role</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="admin-btn">
+                                <span class="btn-text">Tambah User</span>
+                                <span class="btn-icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                            </button>
+                            
+                            <a href="{{ url_for('index') }}" class="cancel-btn">
+                                <span class="btn-text">Kembali</span>
+                                <span class="btn-icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-register-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.admin-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+.admin-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+}
+
+.admin-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.admin-form {
+    padding: 2rem;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #667eea;
+    z-index: 2;
+}
+
+.form-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.input-label {
+    position: absolute;
+    left: 3rem;
+    top: 1rem;
+    color: #999;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    background: white;
+    padding: 0 0.5rem;
+}
+
+.form-input:focus + .input-label,
+.form-input:not(:placeholder-shown) + .input-label {
+    top: -0.5rem;
+    left: 2.5rem;
+    font-size: 0.8rem;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.admin-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.cancel-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.cancel-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+.btn-icon {
+    transition: transform 0.3s ease;
+}
+
+.admin-btn:hover .btn-icon {
+    transform: translateX(5px);
+}
+
+.cancel-btn:hover .btn-icon {
+    transform: translateX(-5px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .admin-btn, .cancel-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// Enhanced interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+    // Input animations
+    const inputs = document.querySelectorAll('.form-input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'translateY(-2px)';
+            this.parentElement.style.transition = 'all 0.3s ease';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'translateY(0)';
+        });
+        
+        // Typing animation
+        input.addEventListener('input', function() {
+            this.style.transform = 'scale(1.02)';
+            setTimeout(() => this.style.transform = 'scale(1)', 100);
+        });
+    });
+    
+    // Button hover effects
+    const buttons = document.querySelectorAll('.admin-btn, .cancel-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px) scale(1.02)';
+        });
+        
+        btn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+});
+</script>
+{% endblock %}

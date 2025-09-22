@@ -30,7 +30,7 @@
                             <i class="fas fa-plus"></i> Upload File
                         </button>
                         {% if current_user.is_admin %}
-                        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
+                        <a href="{{ url_for('admin_register') }}" class="btn btn-outline-success">
                             <i class="fas fa-user-plus"></i> Register User
                         </a>
                         {% endif %}

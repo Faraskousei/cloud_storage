@@ -163,9 +163,6 @@
                         <button class="action-btn copy-btn" onclick="copyDownloadLink('{{ file.id }}')" title="Copy Download Link">
                             <i class="fas fa-link"></i>
                         </button>
-                        <button class="action-btn code-btn" onclick="showDownloadCode('{{ file.id }}', '{{ file.download_code }}')" title="Show Download Code">
-                            <i class="fas fa-key"></i>
-                        </button>
                         {% if file.file_type == 'pdf' or file.file_type in ['png', 'jpg', 'jpeg', 'gif'] %}
                         <button class="action-btn view-btn" onclick="viewFile('{{ file.id }}')" title="Preview">
                             <i class="fas fa-eye"></i>
@@ -493,13 +490,47 @@
     position: relative;
 }
 
+/* PDF Files */
 .file-icon.pdf { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }
-.file-icon.image { background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
-.file-icon.word { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.file-icon.excel { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.file-icon.powerpoint { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-.file-icon.archive { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
-.file-icon.default { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
+
+/* Image Files */
+.file-icon.png,
+.file-icon.jpg,
+.file-icon.jpeg,
+.file-icon.gif { background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
+
+/* Word Files */
+.file-icon.doc,
+.file-icon.docx { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+/* Excel Files */
+.file-icon.xls,
+.file-icon.xlsx { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+
+/* PowerPoint Files */
+.file-icon.ppt,
+.file-icon.pptx { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+
+/* Archive Files */
+.file-icon.zip,
+.file-icon.rar { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+/* Text Files */
+.file-icon.txt { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
+
+/* Video Files */
+.file-icon.mp4,
+.file-icon.avi,
+.file-icon.mov { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+/* Audio Files */
+.file-icon.mp3,
+.file-icon.wav,
+.file-icon.flac { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+/* Default/Unknown Files */
+.file-icon.default,
+.file-icon { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
 
 .file-content {
     padding: 1.5rem;
@@ -588,15 +619,6 @@
         transform: translateY(-2px);
     }
 
-    .code-btn {
-        background: #f59e0b;
-        color: white;
-    }
-
-    .code-btn:hover {
-        background: #d97706;
-        transform: translateY(-2px);
-    }
 
 .delete-btn {
     background: #ef4444;
@@ -747,26 +769,62 @@ function deleteFile(filename) {
 }
 
 function downloadFile(fileId) {
-    // Implement download functionality
-    console.log('Download file:', fileId);
-}
-
-function copyDownloadLink(fileId) {
-    // Copy download link to clipboard
-    fetch(`/copy-link/${fileId}`)
+    // Direct download for logged in users
+    console.log('Direct download file:', fileId);
+    
+    // Get file info first
+    fetch(`/get-file-info/${fileId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Direct download using stored_name
+                const downloadUrl = `/download_logged_in/${data.file.stored_name}`;
+                console.log('Downloading:', downloadUrl);
+                
+                // Create temporary link and click it
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = data.file.original_name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showNotification('File berhasil didownload!', 'success');
+            } else {
+                showNotification('Gagal mendapatkan info file!', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Download error:', error);
+            showNotification('Error saat download!', 'error');
+        });
+}
+
+function copyDownloadLink(fileId) {
+    console.log(`🔗 Copy download link for file ID: ${fileId}`);
+    
+    // Copy download link to clipboard with rotating key
+    fetch(`/copy-link/${fileId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('📊 Copy link response:', data);
+            
+            if (data.success) {
                 // Copy to clipboard
                 navigator.clipboard.writeText(data.download_url).then(() => {
-                    // Show success message
-                    showNotification('Download link berhasil disalin!', 'success');
+                    // Show success message with new download code
+                    showNotification(`Download link berhasil disalin! Kode baru: ${data.download_code}`, 'success');
+                    
+                    // Show download code modal with new code
+                    if (data.download_code) {
+                        showDownloadCodeModal(data.download_code, data.file_name);
+                    }
                 }).catch(err => {
                     console.error('Failed to copy: ', err);
                     showNotification('Gagal menyalin link!', 'error');
                 });
             } else {
-                showNotification('Gagal mendapatkan link download!', 'error');
+                showNotification('Gagal mendapatkan link download: ' + (data.error || 'Unknown error'), 'error');
             }
         })
         .catch(error => {
@@ -812,7 +870,7 @@ function refreshFiles() {
     location.reload();
 }
 
-// Simple Upload Form Handler
+// Enhanced Upload Form Handler with Better Error Handling
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -822,73 +880,128 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     const progressBar = document.getElementById('progressBar');
     const uploadStatus = document.getElementById('uploadStatus');
     const statusText = document.getElementById('statusText');
+    const fileInput = document.getElementById('file');
     
-    // Show progress
-    uploadProgress.style.display = 'block';
-    uploadStatus.style.display = 'block';
-    uploadBtn.disabled = true;
-    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    // Validasi file input
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showNotification('Pilih file terlebih dahulu!', 'error');
+        return;
+    }
     
-    // Simple progress animation
+    const file = fileInput.files[0];
+    console.log('📁 Uploading file:', file.name, 'Size:', file.size);
+    
+    // Validasi ukuran file (max 5GB)
+    const maxSize = 5 * 1024 * 1024 * 1024; // 5GB
+    if (file.size > maxSize) {
+        showNotification('File terlalu besar! Maksimal 5GB.', 'error');
+        return;
+    }
+    
+    if (file.size === 0) {
+        showNotification('File kosong!', 'error');
+        return;
+    }
+    
+    // Show progress with null checks
+    if (uploadProgress) uploadProgress.style.display = 'block';
+    if (uploadStatus) uploadStatus.style.display = 'block';
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    }
+    
+    // Reset status
+    if (uploadStatus) uploadStatus.className = 'alert';
+    if (statusText) statusText.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengupload file...';
+    
+    // Progress animation
     let progress = 0;
     const progressInterval = setInterval(() => {
-        progress += 10;
-        if (progress > 90) progress = 90;
-        progressBar.style.width = progress + '%';
-    }, 100);
+        progress += 5;
+        if (progress > 85) progress = 85;
+        if (progressBar) progressBar.style.width = progress + '%';
+    }, 200);
     
-    // Upload file
-    fetch('/upload', {
+    // Upload file with timeout (10 minutes for 5GB files)
+    const uploadPromise = fetch('/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        timeout: 600000 // 10 minute timeout for large files
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Upload timeout! File terlalu besar atau koneksi lambat.')), 600000);
+    });
+    
+    Promise.race([uploadPromise, timeoutPromise])
+    .then(response => {
+        console.log('📡 Upload response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
     })
-    .then(response => response.json())
     .then(data => {
         clearInterval(progressInterval);
-        progressBar.style.width = '100%';
+        if (progressBar) progressBar.style.width = '100%';
+        
+        console.log('📊 Upload response:', data);
         
         if (data.success) {
-            statusText.innerHTML = '<i class="fas fa-check-circle me-2"></i>File berhasil diupload!';
-            uploadStatus.className = 'alert alert-success';
+            if (statusText) statusText.innerHTML = '<i class="fas fa-check-circle me-2"></i>File berhasil diupload!';
+            if (uploadStatus) uploadStatus.className = 'alert alert-success';
+            showNotification(data.message || 'File berhasil diupload!', 'success');
+            
+            // Reset form
+            this.reset();
             
             // Reload page to show new file
             setTimeout(() => {
                 location.reload();
-            }, 1000);
+            }, 1500);
         } else {
-            statusText.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Upload gagal: ' + data.error;
-            uploadStatus.className = 'alert alert-danger';
+            if (statusText) statusText.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Upload gagal: ' + (data.error || 'Unknown error');
+            if (uploadStatus) uploadStatus.className = 'alert alert-danger';
+            showNotification('Upload gagal: ' + (data.error || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
         clearInterval(progressInterval);
-        statusText.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
-        uploadStatus.className = 'alert alert-danger';
+        console.error('❌ Upload error:', error);
+        
+        let errorMessage = 'Error saat upload!';
+        if (error.message.includes('timeout')) {
+            errorMessage = 'Upload timeout! File terlalu besar atau koneksi lambat.';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Koneksi terputus! Periksa koneksi internet.';
+        } else if (error.message.includes('HTTP')) {
+            errorMessage = 'Server error! Coba lagi nanti.';
+        } else {
+            errorMessage = error.message || 'Unknown error';
+        }
+        
+        if (statusText) statusText.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + errorMessage;
+        if (uploadStatus) uploadStatus.className = 'alert alert-danger';
+        showNotification(errorMessage, 'error');
     })
     .finally(() => {
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload';
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload';
+        }
+        
+        // Hide progress after 3 seconds
+        setTimeout(() => {
+            if (uploadProgress) uploadProgress.style.display = 'none';
+            if (uploadStatus) uploadStatus.style.display = 'none';
+        }, 3000);
     });
 });
 
 // File management functions
-function downloadFile(fileId) {
-    // Get file download link
-    fetch(`/copy-link/${fileId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Open download link in new tab
-                window.open(data.download_url, '_blank');
-            } else {
-                showNotification('Gagal mendapatkan link download!', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Download error:', error);
-            showNotification('Error saat download!', 'error');
-        });
-}
 
 function viewFile(fileId) {
     // Get file preview link
@@ -938,25 +1051,25 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-function showDownloadCode(fileId, downloadCode) {
-    // Create modal for showing download code
+
+function showDownloadCodeModal(downloadCode, fileName) {
+    // Create modal for download code
     const modal = document.createElement('div');
     modal.className = 'modal fade';
-    modal.id = 'downloadCodeModal';
     modal.innerHTML = `
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-key me-2"></i>Kode Download
+                        Kode Download Baru
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center">
                     <div class="mb-3">
-                        <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
                         <h4>Kode Download File</h4>
                         <p class="text-muted">Berikan kode ini kepada orang yang ingin mendownload file</p>
+                        <p class="text-info"><strong>File:</strong> ${fileName}</p>
                     </div>
                     <div class="code-display">
                         <div class="code-number">${downloadCode}</div>
@@ -964,9 +1077,9 @@ function showDownloadCode(fileId, downloadCode) {
                             <i class="fas fa-copy me-2"></i>Copy Kode
                         </button>
                     </div>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Penting:</strong> Kode ini diperlukan untuk mendownload file. Jangan bagikan kepada orang yang tidak dipercaya.
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Penting:</strong> Kode ini akan berubah setiap kali link di-copy. Link lama tidak akan berfungsi lagi.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -976,7 +1089,7 @@ function showDownloadCode(fileId, downloadCode) {
         </div>
     `;
     
-    // Add modal to page
+    // Add to page
     document.body.appendChild(modal);
     
     // Show modal

@@ -129,87 +129,177 @@ def get_file_info():
 def upload_file():
     """Upload file baru - hanya untuk user yang sudah login"""
     try:
+        print(f"🔧 Upload request started by user: {current_user.username}")
+        print(f"📊 Request method: {request.method}")
+        print(f"📊 Request content type: {request.content_type}")
+        print(f"📊 Request files: {list(request.files.keys())}")
+        
+        # Validasi request
         if 'file' not in request.files:
+            print("❌ No file in request")
             return jsonify({
                 'success': False,
                 'error': 'Tidak ada file yang dipilih'
             })
         
         file = request.files['file']
-        if file.filename == '':
+        if not file or file.filename == '':
+            print("❌ Empty file")
             return jsonify({
                 'success': False,
                 'error': 'Tidak ada file yang dipilih'
             })
         
-        if file and allowed_file(file.filename):
-            # Buat nama file yang aman dan unik
-            filename = secure_filename(file.filename)
-            name, ext = os.path.splitext(filename)
-            unique_filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
-            
-            # Pastikan folder uploads ada
-            upload_folder = app.config['UPLOAD_FOLDER']
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            
-            # Simpan file ke folder
-            file_path = os.path.join(upload_folder, unique_filename)
+        print(f"📁 File selected: {file.filename}")
+        
+        # Get file size without reading the entire file
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)  # Reset to beginning
+        print(f"📊 File size: {file_size} bytes")
+        
+        # Validasi ukuran file maksimal 5GB
+        max_size = 5 * 1024 * 1024 * 1024  # 5GB
+        if file_size > max_size:
+            print(f"❌ File too large: {file_size} bytes (max: {max_size} bytes)")
+            return jsonify({
+                'success': False,
+                'error': f'File terlalu besar! Maksimal ukuran file adalah 5GB. Ukuran file Anda: {format_file_size(file_size)}'
+            })
+        
+        # Validasi tipe file
+        if not allowed_file(file.filename):
+            print(f"❌ File type not allowed: {file.filename}")
+            return jsonify({
+                'success': False,
+                'error': 'Tipe file tidak diizinkan. File yang diizinkan: ' + ', '.join(app.config['ALLOWED_EXTENSIONS'])
+            })
+        
+        # Buat nama file yang aman dan unik
+        filename = secure_filename(file.filename)
+        if not filename:
+            print("❌ Invalid filename after secure_filename")
+            return jsonify({
+                'success': False,
+                'error': 'Nama file tidak valid'
+            })
+        
+        name, ext = os.path.splitext(filename)
+        unique_filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
+        print(f"📝 Generated filename: {unique_filename}")
+        
+        # Pastikan folder uploads ada
+        upload_folder = app.config['UPLOAD_FOLDER']
+        if not os.path.exists(upload_folder):
+            print(f"📁 Creating upload folder: {upload_folder}")
+            os.makedirs(upload_folder, exist_ok=True)
+        
+        # Simpan file ke folder
+        file_path = os.path.join(upload_folder, unique_filename)
+        print(f"💾 Saving file to: {file_path}")
+        print(f"📁 Upload folder exists: {os.path.exists(upload_folder)}")
+        print(f"📁 Upload folder writable: {os.access(upload_folder, os.W_OK)}")
+        
+        try:
+            # Ensure file pointer is at beginning
+            file.seek(0)
             file.save(file_path)
+            print("✅ File saved successfully")
             
-            # Cek apakah file berhasil disimpan
-            if not os.path.exists(file_path):
+            # Verify file was saved
+            if os.path.exists(file_path):
+                saved_size = os.path.getsize(file_path)
+                print(f"✅ File exists after save, size: {saved_size} bytes")
+            else:
+                print("❌ File not found after save")
                 return jsonify({
                     'success': False,
-                    'error': 'Gagal menyimpan file ke server'
+                    'error': 'File tidak tersimpan ke server'
                 })
-            
-            # Simpan informasi file ke database
+                
+        except Exception as save_error:
+            print(f"❌ File save error: {str(save_error)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': f'Gagal menyimpan file: {str(save_error)}'
+            })
+        
+        # Cek apakah file berhasil disimpan
+        if not os.path.exists(file_path):
+            print("❌ File not found after save")
+            return jsonify({
+                'success': False,
+                'error': 'Gagal menyimpan file ke server'
+            })
+        
+        # Cek ukuran file
+        file_size = os.path.getsize(file_path)
+        if file_size == 0:
+            print("❌ File size is 0")
+            os.remove(file_path)  # Hapus file kosong
+            return jsonify({
+                'success': False,
+                'error': 'File kosong atau rusak'
+            })
+        
+        print(f"📊 File size verified: {file_size} bytes")
+        
+        # Simpan informasi file ke database
+        try:
             file_record = File(
                 original_name=filename,
                 stored_name=unique_filename,
                 file_path=file_path,
-                file_size=os.path.getsize(file_path),
+                file_size=file_size,
                 file_type=ext[1:].lower() if ext else 'unknown',
                 mime_type=mimetypes.guess_type(file_path)[0],
-                download_key=File().generate_download_key(),  # Generate unique download key
-                download_code=File().generate_download_code(),  # Generate 6-digit download code
+                download_key=File().generate_download_key(),
+                download_code=File().generate_download_code(),
                 owner_id=current_user.id,
                 team_id=current_user.team_id
             )
             
             db.session.add(file_record)
             db.session.commit()
+            print(f"✅ File record saved to database: ID {file_record.id}")
             
-            print(f"✅ File uploaded: {filename} -> {unique_filename}")
-            print(f"📁 File path: {file_path}")
-            print(f"📊 File size: {file_record.file_size} bytes")
-            
-            # Return file data for AJAX
-            return jsonify({
-                'success': True,
-                'message': f'File "{filename}" berhasil diupload!',
-                'file': {
-                    'id': file_record.id,
-                    'original_name': file_record.original_name,
-                    'stored_name': file_record.stored_name,
-                    'file_type': file_record.file_type,
-                    'file_size_formatted': file_record.format_file_size(),
-                    'created_at': file_record.created_at.strftime('%d/%m/%Y'),
-                    'team': {
-                        'name': file_record.team.name,
-                        'color': file_record.team.color
-                    } if file_record.team else None
-                }
-            })
-        else:
+        except Exception as db_error:
+            print(f"❌ Database error: {str(db_error)}")
+            db.session.rollback()
+            # Hapus file jika database error
+            if os.path.exists(file_path):
+                os.remove(file_path)
             return jsonify({
                 'success': False,
-                'error': 'Tipe file tidak diizinkan. File yang diizinkan: ' + ', '.join(app.config['ALLOWED_EXTENSIONS'])
+                'error': f'Gagal menyimpan ke database: {str(db_error)}'
             })
+        
+        print(f"✅ Upload completed successfully: {filename} -> {unique_filename}")
+        
+        # Return file data for AJAX
+        return jsonify({
+            'success': True,
+            'message': f'File "{filename}" berhasil diupload!',
+            'file': {
+                'id': file_record.id,
+                'original_name': file_record.original_name,
+                'stored_name': file_record.stored_name,
+                'file_type': file_record.file_type,
+                'file_size_formatted': file_record.format_file_size(),
+                'created_at': file_record.created_at.strftime('%d/%m/%Y'),
+                'team': {
+                    'name': file_record.team.name,
+                    'color': file_record.team.color
+                } if file_record.team else None
+            }
+        })
     
     except Exception as e:
         print(f"❌ Upload error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': f'Error saat upload: {str(e)}'
@@ -218,8 +308,10 @@ def upload_file():
 @app.route('/copy-link/<int:file_id>')
 @login_required
 def copy_link(file_id):
-    """Generate copy link untuk file"""
+    """Generate copy link untuk file dengan key yang berganti setiap diklik"""
     try:
+        print(f"🔧 Copy link request for file ID: {file_id} by user: {current_user.username}")
+        
         if current_user.is_admin:
             # Admin bisa copy link file dari semua tim
             file_record = File.query.get(file_id)
@@ -231,24 +323,57 @@ def copy_link(file_id):
             ).first()
         
         if not file_record:
-            flash('File tidak ditemukan atau Anda tidak memiliki akses!', 'error')
-            return redirect(url_for('index'))
+            print(f"❌ File not found or no access: {file_id}")
+            return jsonify({
+                'success': False,
+                'error': 'File tidak ditemukan atau Anda tidak memiliki akses!'
+            })
         
-        # Generate download dan preview URL
+        # Generate NEW download key setiap kali copy link
+        old_key = file_record.download_key
+        new_key = File().generate_download_key()
+        new_code = File().generate_download_code()
+        
+        print(f"🔄 Rotating download key: {old_key} -> {new_key}")
+        print(f"🔄 Rotating download code: {file_record.download_code} -> {new_code}")
+        
+        # Update file record dengan key dan code baru
+        file_record.download_key = new_key
+        file_record.download_code = new_code
+        
+        try:
+            db.session.commit()
+            print(f"✅ Download key and code updated for file: {file_record.original_name}")
+        except Exception as db_error:
+            print(f"❌ Database error updating keys: {str(db_error)}")
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': f'Gagal mengupdate download key: {str(db_error)}'
+            })
+        
+        # Generate download dan preview URL dengan key baru
         base_url = request.url_root.rstrip('/')
-        download_url = file_record.get_download_url(base_url)
-        preview_url = file_record.get_preview_url(base_url)
+        download_url = f"{base_url}/download/{new_key}"
+        preview_url = f"{base_url}/preview/{new_key}"
+        
+        print(f"🔗 Generated new download URL: {download_url}")
+        print(f"🔗 Generated new preview URL: {preview_url}")
         
         return jsonify({
             'success': True,
             'download_url': download_url,
             'preview_url': preview_url,
             'file_name': file_record.original_name,
-            'file_type': file_record.file_type
+            'file_type': file_record.file_type,
+            'download_code': new_code,
+            'message': 'Link download berhasil dibuat dengan key baru!'
         })
         
     except Exception as e:
         print(f"❌ Copy link error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -354,6 +479,46 @@ def preview_file(download_key):
                              error_code=500, 
                              error_message="Preview Error",
                              error_description=f"Error saat preview: {str(e)}"), 500
+
+@app.route('/get-file-info/<int:file_id>')
+@login_required
+def get_file_info_by_id(file_id):
+    """Get file info by ID - untuk download langsung"""
+    try:
+        if current_user.is_admin:
+            # Admin bisa akses file dari semua tim
+            file_record = File.query.get(file_id)
+        else:
+            # User biasa hanya bisa akses file dari tim mereka
+            file_record = File.query.filter_by(
+                id=file_id, 
+                team_id=current_user.team_id
+            ).first()
+        
+        if not file_record:
+            return jsonify({
+                'success': False,
+                'error': 'File tidak ditemukan atau Anda tidak memiliki akses!'
+            })
+        
+        return jsonify({
+            'success': True,
+            'file': {
+                'id': file_record.id,
+                'original_name': file_record.original_name,
+                'stored_name': file_record.stored_name,
+                'file_type': file_record.file_type,
+                'file_size': file_record.file_size,
+                'created_at': file_record.created_at.strftime('%d/%m/%Y %H:%M')
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Get file info error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 @app.route('/download_logged_in/<filename>')
 @login_required
@@ -505,83 +670,80 @@ def login():
                              error_message="Login Page Error",
                              error_description="Unable to load login page. Please try again later."), 500
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    """Halaman register"""
-    try:
-        if request.method == 'POST':
-            full_name = request.form.get('full_name')
-            username = request.form.get('username')
-            email = request.form.get('email')
-            password = request.form.get('password')
-            confirm_password = request.form.get('confirm_password')
-            team_id = request.form.get('team_id')
+
+@app.route('/admin/register', methods=['GET', 'POST'])
+@login_required
+def admin_register():
+    """Admin register new user - hanya untuk admin"""
+    # Cek apakah user adalah admin
+    if not current_user.is_admin:
+        flash('Akses ditolak. Hanya admin yang bisa menambah user baru.', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        try:
+            username = request.form['username']
+            email = request.form['email']
+            full_name = request.form['full_name']
+            password = request.form['password']
+            team_id = request.form['team_id']
+            is_admin = request.form.get('is_admin', '0') == '1'
             
-            # Validasi form
-            if not all([full_name, username, email, password, confirm_password, team_id]):
+            # Validasi input
+            if not username or not email or not full_name or not password or not team_id:
                 flash('Semua field harus diisi!', 'error')
-                return render_template('register.html', teams=Team.query.all())
-            
-            if password != confirm_password:
-                flash('Password dan konfirmasi password tidak sama!', 'error')
-                return render_template('register.html', teams=Team.query.all())
-            
-            if len(password) < 6:
-                flash('Password minimal 6 karakter!', 'error')
-                return render_template('register.html', teams=Team.query.all())
+                return redirect(url_for('admin_register'))
             
             # Cek apakah username sudah ada
-            if User.query.filter_by(username=username).first():
+            existing_user = User.query.filter_by(username=username).first()
+            if existing_user:
                 flash('Username sudah digunakan!', 'error')
-                return render_template('register.html', teams=Team.query.all())
+                return redirect(url_for('admin_register'))
             
             # Cek apakah email sudah ada
-            if User.query.filter_by(email=email).first():
+            existing_email = User.query.filter_by(email=email).first()
+            if existing_email:
                 flash('Email sudah digunakan!', 'error')
-                return render_template('register.html', teams=Team.query.all())
+                return redirect(url_for('admin_register'))
             
-            # Cek apakah team_id valid
+            # Cek apakah team ada
             team = Team.query.get(team_id)
             if not team:
-                flash('Tim tidak valid!', 'error')
-                return render_template('register.html', teams=Team.query.all())
+                flash('Tim tidak ditemukan!', 'error')
+                return redirect(url_for('admin_register'))
             
-            try:
-                # Buat user baru
-                new_user = User(
-                    full_name=full_name,
-                    username=username,
-                    email=email,
-                    team_id=team_id,
-                    is_admin=False,
-                    is_active=True
-                )
-                new_user.set_password(password)
-                
-                db.session.add(new_user)
-                db.session.commit()
-                
-                flash(f'Akun berhasil dibuat! Selamat datang {full_name}!', 'success')
-                return redirect(url_for('login'))
-                
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error saat membuat akun: {str(e)}', 'error')
-                return render_template('register.html', teams=Team.query.all())
-    
-        # Jika sudah login, redirect ke index
-        if current_user.is_authenticated:
+            # Buat user baru
+            new_user = User(
+                username=username,
+                email=email,
+                full_name=full_name,
+                team_id=team_id,
+                is_admin=is_admin
+            )
+            new_user.set_password(password)
+            
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash(f'User "{username}" berhasil ditambahkan!', 'success')
             return redirect(url_for('index'))
-        
-        return render_template('register.html', teams=Team.query.all())
-        
+            
+        except Exception as e:
+            print(f"❌ Admin register error: {str(e)}")
+            flash(f'Error saat menambah user: {str(e)}', 'error')
+            return redirect(url_for('admin_register'))
+    
+    # GET request - tampilkan form
+    try:
+        teams = Team.query.all()
+        return render_template('admin_register.html', teams=teams)
     except Exception as e:
-        print(f"❌ Register route error: {str(e)}")
-        flash(f'Error loading register page: {str(e)}', 'error')
+        print(f"❌ Admin register page error: {str(e)}")
+        flash(f'Error loading admin register page: {str(e)}', 'error')
         return render_template('error.html', 
                              error_code=500, 
-                             error_message="Register Page Error",
-                             error_description="Unable to load registration page. Please try again later."), 500
+                             error_message="Admin Register Page Error",
+                             error_description="Unable to load admin register page. Please try again later."), 500
 
 @app.route('/logout')
 @login_required

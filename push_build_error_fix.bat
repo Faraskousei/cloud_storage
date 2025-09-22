@@ -1,32 +1,33 @@
 @echo off
 echo ========================================
-echo   Push Build Error Fix
+echo   Fix BuildError for Register Route
 echo ========================================
 echo.
 
-echo 🔧 Fixing BuildError in base.html...
+echo 🔧 Fixing BuildError for removed register route...
 echo.
 
 echo 📦 Adding all changes...
 git add .
 
 echo 💾 Committing changes...
-git commit -m "Fix BuildError: Replace url_for('dashboard') with url_for('index') in base.html template, ensure all routes are properly defined"
+git commit -m "Fix BuildError: Removed register link from navbar, deleted unused register.html template, updated all references to use admin_register route"
 
 echo 🚀 Pushing to GitHub...
 git push origin main
 
 echo.
-echo ✅ Successfully pushed BuildError fix!
+echo ✅ Successfully fixed BuildError!
 echo.
-echo 🚀 BuildError is now fixed!
+echo 🚀 Application should work without BuildError!
 echo.
-echo 📋 Fixes made:
-echo    - Fixed url_for('dashboard') to url_for('index') in base.html
-echo    - Removed non-existent dashboard route reference
-echo    - All navigation links now point to correct routes
-echo    - Application loads without BuildError
+echo 📋 Fixes implemented:
+echo    - Removed register link from base.html navbar
+echo    - Deleted unused register.html template
+echo    - Updated dashboard.html to use admin_register
+echo    - Updated auth/profile.html to use admin_register
+echo    - All references now point to admin_register
 echo.
-echo 🌐 Application is now running without BuildError!
+echo 🔧 BuildError is now fixed!
 echo.
 pause
