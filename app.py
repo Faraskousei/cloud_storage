@@ -100,12 +100,21 @@ def format_file_size(size_bytes):
 @app.route('/')
 def index():
     """Halaman utama - menampilkan daftar file"""
-    # Jika belum login, redirect ke halaman login
-    if not current_user.is_authenticated:
-        return redirect(url_for('login'))
-    
-    files = get_file_info()
-    return render_template('index.html', files=files)
+    try:
+        # Jika belum login, redirect ke halaman login
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        
+        files = get_file_info()
+        return render_template('index.html', files=files)
+        
+    except Exception as e:
+        print(f"❌ Index route error: {str(e)}")
+        flash(f'Error loading dashboard: {str(e)}', 'error')
+        return render_template('error.html', 
+                             error_code=500, 
+                             error_message="Dashboard Error",
+                             error_description="Unable to load dashboard. Please try again later."), 500
 
 @app.route('/upload', methods=['POST'])
 @login_required
@@ -307,71 +316,80 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Halaman register"""
-    if request.method == 'POST':
-        full_name = request.form.get('full_name')
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        team_id = request.form.get('team_id')
-        
-        # Validasi form
-        if not all([full_name, username, email, password, confirm_password, team_id]):
-            flash('Semua field harus diisi!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        if password != confirm_password:
-            flash('Password dan konfirmasi password tidak sama!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        if len(password) < 6:
-            flash('Password minimal 6 karakter!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        # Cek apakah username sudah ada
-        if User.query.filter_by(username=username).first():
-            flash('Username sudah digunakan!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        # Cek apakah email sudah ada
-        if User.query.filter_by(email=email).first():
-            flash('Email sudah digunakan!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        # Cek apakah team_id valid
-        team = Team.query.get(team_id)
-        if not team:
-            flash('Tim tidak valid!', 'error')
-            return render_template('register.html', teams=Team.query.all())
-        
-        try:
-            # Buat user baru
-            new_user = User(
-                full_name=full_name,
-                username=username,
-                email=email,
-                team_id=team_id,
-                is_admin=False,
-                is_active=True
-            )
-            new_user.set_password(password)
+    try:
+        if request.method == 'POST':
+            full_name = request.form.get('full_name')
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+            team_id = request.form.get('team_id')
             
-            db.session.add(new_user)
-            db.session.commit()
+            # Validasi form
+            if not all([full_name, username, email, password, confirm_password, team_id]):
+                flash('Semua field harus diisi!', 'error')
+                return render_template('register.html', teams=Team.query.all())
             
-            flash(f'Akun berhasil dibuat! Selamat datang {full_name}!', 'success')
-            return redirect(url_for('login'))
+            if password != confirm_password:
+                flash('Password dan konfirmasi password tidak sama!', 'error')
+                return render_template('register.html', teams=Team.query.all())
             
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error saat membuat akun: {str(e)}', 'error')
-            return render_template('register.html', teams=Team.query.all())
+            if len(password) < 6:
+                flash('Password minimal 6 karakter!', 'error')
+                return render_template('register.html', teams=Team.query.all())
+            
+            # Cek apakah username sudah ada
+            if User.query.filter_by(username=username).first():
+                flash('Username sudah digunakan!', 'error')
+                return render_template('register.html', teams=Team.query.all())
+            
+            # Cek apakah email sudah ada
+            if User.query.filter_by(email=email).first():
+                flash('Email sudah digunakan!', 'error')
+                return render_template('register.html', teams=Team.query.all())
+            
+            # Cek apakah team_id valid
+            team = Team.query.get(team_id)
+            if not team:
+                flash('Tim tidak valid!', 'error')
+                return render_template('register.html', teams=Team.query.all())
+            
+            try:
+                # Buat user baru
+                new_user = User(
+                    full_name=full_name,
+                    username=username,
+                    email=email,
+                    team_id=team_id,
+                    is_admin=False,
+                    is_active=True
+                )
+                new_user.set_password(password)
+                
+                db.session.add(new_user)
+                db.session.commit()
+                
+                flash(f'Akun berhasil dibuat! Selamat datang {full_name}!', 'success')
+                return redirect(url_for('login'))
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error saat membuat akun: {str(e)}', 'error')
+                return render_template('register.html', teams=Team.query.all())
     
-    # Jika sudah login, redirect ke index
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    return render_template('register.html', teams=Team.query.all())
+        # Jika sudah login, redirect ke index
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
+        
+        return render_template('register.html', teams=Team.query.all())
+        
+    except Exception as e:
+        print(f"❌ Register route error: {str(e)}")
+        flash(f'Error loading register page: {str(e)}', 'error')
+        return render_template('error.html', 
+                             error_code=500, 
+                             error_message="Register Page Error",
+                             error_description="Unable to load registration page. Please try again later."), 500
 
 @app.route('/logout')
 def logout():
