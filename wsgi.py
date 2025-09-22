@@ -19,10 +19,13 @@ upload_folder = app.config['UPLOAD_FOLDER']
 if not os.path.exists(upload_folder):
     os.makedirs(upload_folder)
 
-# Initialize database
-from models import db, init_database
-with app.app_context():
-    init_database(app)
+# Lazy database initialization
+from lazy_db_init import ensure_database_initialized
+
+@app.before_first_request
+def initialize_database():
+    """Initialize database before first request"""
+    ensure_database_initialized(app)
 
 if __name__ == "__main__":
     app.run()

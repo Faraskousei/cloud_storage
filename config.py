@@ -19,8 +19,10 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_recycle': 300,
         'pool_pre_ping': True,
-        'pool_size': 10,
-        'max_overflow': 20
+        'pool_size': 5,
+        'max_overflow': 10,
+        'pool_timeout': 30,
+        'pool_reset_on_return': 'commit'
     }
     
     # Konfigurasi upload
@@ -58,9 +60,31 @@ class ProductionConfig(Config):
     # Database configuration untuk Railway (PostgreSQL)
     if os.environ.get('DATABASE_URL'):
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+        # PostgreSQL connection pool settings
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_recycle': 300,
+            'pool_pre_ping': True,
+            'pool_size': 3,
+            'max_overflow': 5,
+            'pool_timeout': 20,
+            'pool_reset_on_return': 'commit',
+            'connect_args': {
+                'connect_timeout': 10,
+                'application_name': 'cloud_storage'
+            }
+        }
     else:
         # Fallback ke MySQL jika DATABASE_URL tidak ada
         SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{Config.MYSQL_USER}:{Config.MYSQL_PASSWORD}@{Config.MYSQL_HOST}:{Config.MYSQL_PORT}/{Config.MYSQL_DATABASE}'
+        # MySQL connection pool settings
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_recycle': 300,
+            'pool_pre_ping': True,
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_timeout': 30,
+            'pool_reset_on_return': 'commit'
+        }
 
 class TestingConfig(Config):
     """Konfigurasi untuk testing"""
