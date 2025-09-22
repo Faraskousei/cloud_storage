@@ -58,14 +58,15 @@ class ProductionConfig(Config):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
     # Database configuration untuk Railway (PostgreSQL)
+    # Railway menyediakan DATABASE_URL untuk PostgreSQL
     if os.environ.get('DATABASE_URL'):
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
         # PostgreSQL connection pool settings
         SQLALCHEMY_ENGINE_OPTIONS = {
             'pool_recycle': 300,
             'pool_pre_ping': True,
-            'pool_size': 3,
-            'max_overflow': 5,
+            'pool_size': 2,
+            'max_overflow': 3,
             'pool_timeout': 20,
             'pool_reset_on_return': 'commit',
             'connect_args': {
@@ -74,15 +75,14 @@ class ProductionConfig(Config):
             }
         }
     else:
-        # Fallback ke MySQL jika DATABASE_URL tidak ada
-        SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{Config.MYSQL_USER}:{Config.MYSQL_PASSWORD}@{Config.MYSQL_HOST}:{Config.MYSQL_PORT}/{Config.MYSQL_DATABASE}'
-        # MySQL connection pool settings
+        # Fallback ke SQLite jika DATABASE_URL tidak ada (untuk testing)
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///cloud_storage.db'
         SQLALCHEMY_ENGINE_OPTIONS = {
             'pool_recycle': 300,
             'pool_pre_ping': True,
-            'pool_size': 5,
-            'max_overflow': 10,
-            'pool_timeout': 30,
+            'pool_size': 1,
+            'max_overflow': 0,
+            'pool_timeout': 20,
             'pool_reset_on_return': 'commit'
         }
 
