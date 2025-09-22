@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WSGI entry point untuk Railway deployment
+Simple WSGI entry point untuk Railway deployment
 """
 
 import os
@@ -19,7 +19,7 @@ upload_folder = app.config['UPLOAD_FOLDER']
 if not os.path.exists(upload_folder):
     os.makedirs(upload_folder)
 
-# Initialize database dengan error handling
+# Simple database initialization
 try:
     from models import db, init_database
     with app.app_context():
@@ -27,7 +27,6 @@ try:
         print("✅ Database initialized successfully")
 except Exception as e:
     print(f"⚠️  Database initialization warning: {str(e)}")
-    print("🔄 Database will be initialized on first request")
 
 if __name__ == "__main__":
     app.run()
